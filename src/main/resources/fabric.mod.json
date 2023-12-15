@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "sast-login",
+  "version": "${version}",
+  "name": "sast-login",
+  "description": "",
+  "authors": [],
+  "contact": {
+    "repo": "https://github.com/Dell/sast-login"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/sast-login/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "fun.sast.sastlogin.client.Sast_loginClient"
+    ],
+    "main": [
+      "fun.sast.sastlogin.Sast_login"
+    ]
+  },
+  "mixins": [
+    "sast-login.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
