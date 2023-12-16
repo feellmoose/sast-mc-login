@@ -6,7 +6,7 @@
   "description": "",
   "authors": [],
   "contact": {
-    "repo": "https://github.com/Dell/sast-login"
+    "repo": "https://github.com/feellmoose/sast-mc-login"
   },
   "license": "All-Rights-Reserved",
   "icon": "assets/sast-login/icon.png",

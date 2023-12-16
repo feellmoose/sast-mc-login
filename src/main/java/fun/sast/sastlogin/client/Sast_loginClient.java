@@ -1,6 +1,8 @@
 package fun.sast.sastlogin.client;
 
+import fun.sast.sastlogin.commands.LoginCommand;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 
 public class Sast_loginClient implements ClientModInitializer {
     /**
@@ -8,6 +10,8 @@ public class Sast_loginClient implements ClientModInitializer {
      */
     @Override
     public void onInitializeClient() {
-
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            LoginCommand.register(dispatcher);
+        });
     }
 }
