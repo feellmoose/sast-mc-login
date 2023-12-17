@@ -10,6 +10,7 @@ public class OnPlayerAction {
     public static boolean canInteract(ServerPlayNetworkHandler networkHandler) {
         ServerPlayerEntity player = networkHandler.player;
         Player p = PlayerAdapter.getPlayer(player.getUuidAsString());
+        if(p == null) return false;
         return p.isLogin();
     }
 }

@@ -10,9 +10,9 @@ public class OnPlayerMove {
     public static boolean canMove(ServerPlayNetworkHandler networkHandler) {
         ServerPlayerEntity player = networkHandler.player;
         Player p = PlayerAdapter.getPlayer(player.getUuidAsString());
-        if (!p.isLogin()) {
+        if (p == null || !p.isLogin()) {
             player.teleport(player.getX(), player.getY(), player.getZ()); // teleport to sync client position
         }
-        return p.isLogin();
+        return p != null && p.isLogin();
     }
 }

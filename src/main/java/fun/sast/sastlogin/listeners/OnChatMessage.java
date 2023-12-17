@@ -12,7 +12,8 @@ public class OnChatMessage {
         ServerPlayerEntity player = networkHandler.player;
         Player p = PlayerAdapter.getPlayer(player.getUuidAsString());
         String message = packet.chatMessage();
-        if (!p.isLogin() && (message.startsWith("/login"))) {
+        if (p == null) return false;
+        if (!p.isLogin() && (message.startsWith("/login") || message.startsWith("/bind"))) {
             return true;
         }
         return p.isLogin();

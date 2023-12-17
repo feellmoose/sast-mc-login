@@ -1,10 +1,9 @@
 package fun.sast.sastlogin;
 
-import fun.sast.sastlogin.browser.ListenServer;
 import fun.sast.sastlogin.commands.BindCommand;
-import fun.sast.sastlogin.commands.LoginCommand;
 import fun.sast.sastlogin.model.Player;
 import fun.sast.sastlogin.model.PlayerAdapter;
+import fun.sast.sastlogin.server.ListenServer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import sast.sastlink.sdk.model.response.data.AccessToken;
@@ -17,7 +16,6 @@ import java.io.IOException;
 import static fun.sast.sastlogin.config.SastLinkConfig.sastLinkConfig;
 
 public class Sast_login implements ModInitializer {
-
     public final static SastLinkService sastLinkService = new HttpClientSastLinkService.Builder()
             .setClientId(sastLinkConfig.getClientId())
             .setClientSecret(sastLinkConfig.getClientSecret())
@@ -32,9 +30,10 @@ public class Sast_login implements ModInitializer {
     @Override
     public void onInitialize() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            LoginCommand.register(dispatcher);
             BindCommand.register(dispatcher);
+           // LoginCommand.register(dispatcher);
         });
+
         PlayerAdapter.init();
         ListenServer.create((bufferedReader, bufferedWriter) -> {
             try {
@@ -50,12 +49,11 @@ public class Sast_login implements ModInitializer {
         }).openServer(6060);
     }
 
-    private static void login(User user){
+    private static void login(User user) {
         Player p = PlayerAdapter.getPlayerByLinkId(user.getUserId());
-        if (!p.isBan()&&!p.isLogin()) {
+        if (!p.isBan() && !p.isLogin()) {
             p.setLogin(true);
             PlayerAdapter.updatePlayer(p);
         }
     }
-
 }

@@ -26,7 +26,11 @@ public class PlayerAdapter {
         try (BufferedReader bufferedReader = Files.newReader(PlAYERS, StandardCharsets.UTF_8)) {
             players = gson.fromJson(bufferedReader, type);
             map.clear();
-            map.putAll(players.stream().collect(Collectors.toMap(Player::getUuid, player -> player)));
+            if(players != null){
+                map.putAll(players.stream().collect(Collectors.toMap(Player::getUuid, player -> player)));
+            }else {
+                players = new ArrayList<>();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

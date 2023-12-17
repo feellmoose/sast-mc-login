@@ -1,4 +1,4 @@
-package fun.sast.sastlogin.browser;
+package fun.sast.sastlogin.server;
 
 
 import java.io.*;

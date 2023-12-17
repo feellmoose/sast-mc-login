@@ -69,11 +69,23 @@ java {
     withSourcesJar()
 }
 
+
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(project.zipTree("lib/SastLink-Java-SDK-0.1.1.jar"))
+    from(project.zipTree("C:\\Users\\Dell\\.gradle\\caches\\modules-2\\files-2.1\\com.fasterxml.jackson.core\\jackson-annotations\\2.12.7\\2042461b754cd65ab2dd74a9f19f442b54625f19\\jackson-annotations-2.12.7.jar"))
+    from(project.zipTree("C:\\Users\\Dell\\.gradle\\caches\\modules-2\\files-2.1\\com.fasterxml.jackson.core\\jackson-core\\2.12.7\\4669a54b799c105572aa8de2a1ae0fe64a17745\\jackson-core-2.12.7.jar"))
+    from(project.zipTree("C:\\Users\\Dell\\.gradle\\caches\\modules-2\\files-2.1\\com.fasterxml.jackson.core\\jackson-databind\\2.12.7.1\\48d6674adb5a077f2c04b42795e2e7624997b8b9\\jackson-databind-2.12.7.1.jar"))
+//    from {
+//
+//        configurations.compileClasspath.filter { it.exists() }
+//                .collect {
+//                    it.isDirectory() ? it : zipTree(it)
+//                }
+//    }
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}" }
     }
-
 }
 
 // configure the maven publication
