@@ -25,7 +25,7 @@ public class ServerPlayNetworkHandlerMixin {
     @Inject(method = "onPlayerAction", at = @At("HEAD"), cancellable = true)
     public void onPlayerAction(PlayerActionC2SPacket packet, CallbackInfo ci) {
         if (!OnPlayerAction.canInteract((net.minecraft.server.network.ServerPlayNetworkHandler) (Object) this)) {
-            ci.cancel(); // TODO: breaking a block desyncs with server
+            ci.cancel();
         }
     }
 

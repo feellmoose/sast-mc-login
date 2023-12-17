@@ -1,9 +1,12 @@
 package fun.sast.sastlogin;
 
 import fun.sast.sastlogin.browser.ListenServer;
+import fun.sast.sastlogin.commands.BindCommand;
+import fun.sast.sastlogin.commands.LoginCommand;
 import fun.sast.sastlogin.model.Player;
 import fun.sast.sastlogin.model.PlayerAdapter;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import sast.sastlink.sdk.model.response.data.AccessToken;
 import sast.sastlink.sdk.model.response.data.User;
 import sast.sastlink.sdk.service.SastLinkService;
@@ -28,15 +31,18 @@ public class Sast_login implements ModInitializer {
      */
     @Override
     public void onInitialize() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            LoginCommand.register(dispatcher);
+            BindCommand.register(dispatcher);
+        });
         PlayerAdapter.init();
         ListenServer.create((bufferedReader, bufferedWriter) -> {
             try {
                 String res = bufferedReader.readLine();
                 String code = res.substring(res.indexOf("?code=") + 6, res.indexOf("&"));
-                String uuid = res.substring(res.indexOf("&uuid=") + 7);
                 AccessToken accessToken = sastLinkService.accessToken(code);
                 User user = sastLinkService.user(accessToken.getAccessToken());
-                login(user,uuid);
+                login(user);
                 bufferedWriter.write("HTTP/1.1 200 OK");
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -44,11 +50,9 @@ public class Sast_login implements ModInitializer {
         }).openServer(6060);
     }
 
-    private static void login(User user,String uuid){
-        Player p = PlayerAdapter.getPlayer(uuid);
-        if(p == null) {
-            PlayerAdapter.addPlayer(new Player(uuid,user.getUserId(),user.getNickname(),false,true));
-        } else if (!p.isBan()&&!p.isLogin()) {
+    private static void login(User user){
+        Player p = PlayerAdapter.getPlayerByLinkId(user.getUserId());
+        if (!p.isBan()&&!p.isLogin()) {
             p.setLogin(true);
             PlayerAdapter.updatePlayer(p);
         }
