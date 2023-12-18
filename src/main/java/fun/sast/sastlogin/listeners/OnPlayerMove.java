@@ -1,18 +1,17 @@
 package fun.sast.sastlogin.listeners;
 
 
-import fun.sast.sastlogin.model.Player;
-import fun.sast.sastlogin.model.PlayerAdapter;
+import fun.sast.sastlogin.model.UserAdapter;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public class OnPlayerMove {
     public static boolean canMove(ServerPlayNetworkHandler networkHandler) {
         ServerPlayerEntity player = networkHandler.player;
-        Player p = PlayerAdapter.getPlayer(player.getUuidAsString());
-        if (p == null || !p.isLogin()) {
+        boolean login = UserAdapter.anyLogin(player.getUuidAsString());
+        if (!login) {
             player.teleport(player.getX(), player.getY(), player.getZ()); // teleport to sync client position
         }
-        return p != null && p.isLogin();
+        return login;
     }
 }
