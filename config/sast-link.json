@@ -1,9 +1,0 @@
-{
-  "clientId": "e1ab6676-88c3-4997-93b1-73fa78ef7f1a",
-  "clientSecret": "YRxnM-ZSMWo6nHrhwC1xbGWqGHT6BCHd",
-  "redirectUri": "http://mc.sast.fun:6066",
-  "codeVerifier": "sast_forever",
-  "hostName": "81.68.225.220:8080/api/v1",
-  "codeChallenge": "Qn3Kywp0OiU4NK_AFzGPlmrcYJDJ13Abj_jdL08Ahg8%3D",
-  "codeChallengeMethod": "S256"
-}

@@ -16,6 +16,7 @@ public class SastLinkConfig implements Config {
     private String redirectUri;
     private String codeChallenge;
     private String codeChallengeMethod;
+    private int port;
 
     private static SastLinkConfig read() {
         if (!SAST_LINK.exists()) {
@@ -86,6 +87,14 @@ public class SastLinkConfig implements Config {
         this.codeChallengeMethod = codeChallengeMethod;
     }
 
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
     @Override
     public String toString() {
         return "SastLinkConfig{" +
@@ -96,6 +105,7 @@ public class SastLinkConfig implements Config {
                 ", redirectUri='" + redirectUri + '\'' +
                 ", codeChallenge='" + codeChallenge + '\'' +
                 ", codeChallengeMethod='" + codeChallengeMethod + '\'' +
+                ", port=" + port +
                 '}';
     }
 }

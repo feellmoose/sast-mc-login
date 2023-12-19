@@ -23,10 +23,8 @@ public class ListenServer {
         this.open = true;
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("sast-link client/server start listening port: " + port);
-                int i = 1;
+                System.out.println("sast-link server start listening port: " + port);
                 while (this.open) {
-                    System.out.println(i++);
                     try (Socket clientSocket = serverSocket.accept();
                          BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()))) {

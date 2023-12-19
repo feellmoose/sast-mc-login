@@ -2,6 +2,8 @@ package fun.sast.sastlogin.sastlink;
 
 import fun.sast.sastlogin.model.User;
 import fun.sast.sastlogin.model.UserAdapter;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import sast.sastlink.sdk.exception.SastLinkException;
 import sast.sastlink.sdk.model.response.data.AccessToken;
 import sast.sastlink.sdk.test.TestSastLinkServiceAdapter;
@@ -9,12 +11,15 @@ import sast.sastlink.sdk.test.data.Token;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static fun.sast.sastlogin.config.SastLinkConfig.sastLinkConfig;
 
 public class SastLinkServiceAdapter {
-
     public final static TestSastLinkServiceAdapter sastLinkService = new TestSastLinkServiceAdapter.Builder()
             .setClientId(sastLinkConfig.getClientId())
             .setClientSecret(sastLinkConfig.getClientSecret())
@@ -22,6 +27,16 @@ public class SastLinkServiceAdapter {
             .setHostName(sastLinkConfig.getHostName())
             .setRedirectUri(sastLinkConfig.getRedirectUri())
             .build();
+
+    public static String getAuthUrl() {
+        return "https://link.sast.fun/auth" +
+                "?client_id=" + sastLinkConfig.getClientId() +
+                "&code_challenge=" + sastLinkConfig.getCodeChallenge() +
+                "&code_challenge_method=" + sastLinkConfig.getCodeChallengeMethod() +
+                "&redirect_uri=" + sastLinkConfig.getRedirectUri() +
+                "&response_type=code&scope=all" +
+                "&state=xyz";
+    }
 
     public static boolean login(String uuid, String password) {
         List<User> users = UserAdapter.getUsersByUuid(uuid);
@@ -35,38 +50,120 @@ public class SastLinkServiceAdapter {
         return true;
     }
 
+    public static final ConcurrentHashMap<String, ServerPlayerEntity> uuidPlayers = new ConcurrentHashMap<>();
+    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    public static final ConcurrentHashMap<String, ServerPlayerEntity> linkIdPlayers = new ConcurrentHashMap<>();
+
+    public static void delayFailedLoginTask(String uuid){
+        scheduledExecutorService.schedule(() -> {
+            ServerPlayerEntity player = uuidPlayers.get(uuid);
+            if (player != null) {
+                player.sendMessage(Text.literal("§cLogin failed: expired please try again or bind first."),false);
+                uuidPlayers.remove(uuid);
+            }
+        },60, TimeUnit.SECONDS);
+    }
+
+    public static void delayFailedBindTask(String linkId){
+        scheduledExecutorService.schedule(() -> {
+            ServerPlayerEntity player = linkIdPlayers.get(linkId);
+            if(player!=null){
+                player.sendMessage(Text.literal("§cBind failed: expired please try again."),false);
+                linkIdPlayers.remove(linkId);
+            }
+        },60, TimeUnit.SECONDS);
+    }
+
+    public static void Auth(String code) {
+        sast.sastlink.sdk.model.response.data.User linkUser = null;
+        AccessToken accessToken = SastLinkServiceAdapter.sastLinkService.accessToken(code);
+        linkUser = SastLinkServiceAdapter.sastLinkService.user(accessToken.getAccessToken());
+        if (linkIdPlayers.get(linkUser.getUserId())!=null) {
+            AuthBind(linkUser);
+        } else {
+            User user = UserAdapter.getUser(linkUser.getUserId());
+            AuthLogin(user);
+        }
+    }
+
+    public static void AuthLogin(User user){
+        if(user != null) {
+            List<User.Player> players = user.getPlayers();
+            for (User.Player player: players) {
+                ServerPlayerEntity serverPlayer = uuidPlayers.get(player.getUuid());
+                if (serverPlayer != null) {
+                    serverPlayer.sendMessage(Text.literal("§bLogin..."), false);
+                    if(player.isLogin()){
+                        serverPlayer.sendMessage(Text.literal("§cUser:"+ user.getName() + "&" + player.getName()+" already login."), false);
+                    }else {
+                        player.setLogin(true);
+                        if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
+                        serverPlayer.sendMessage(Text.literal("§aLogin success."), false);
+                    }
+                    uuidPlayers.remove(player.getUuid());
+                    break;
+                }
+            }
+            UserAdapter.updateUser(user);
+        }
+    }
+
+    public static void AuthBind(sast.sastlink.sdk.model.response.data.User linkUser){
+        ServerPlayerEntity serverPlayer = linkIdPlayers.get(linkUser.getUserId());
+        if(serverPlayer != null){
+            serverPlayer.sendMessage(Text.literal("§bBinding..."), false);
+            User user = UserAdapter.getUser(linkUser.getUserId());
+            if(user == null){
+                User.Player p = new User.Player(serverPlayer.getUuidAsString(), serverPlayer.getName().getString(), null, true);
+                user = new User(Arrays.asList(p), linkUser.getUserId(), linkUser.getNickname(), linkUser.getEmail());
+                UserAdapter.addUser(user);
+                if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
+                serverPlayer.sendMessage(Text.literal("§aBind success, account "+ user.getName() +" create."), false);
+            }else if(!user.getUuids().contains(serverPlayer.getUuidAsString())){
+                User.Player p = new User.Player(serverPlayer.getUuidAsString(), serverPlayer.getName().getString(), null, true);
+                user.getPlayers().add(p);
+                UserAdapter.updateUser(user);
+                if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
+                serverPlayer.sendMessage(Text.literal("§aBind success."), false);
+            }else {
+                serverPlayer.sendMessage(Text.literal("§cBind account already exist, please login."), false);
+            }
+            linkIdPlayers.remove(linkUser.getUserId());
+        }
+    }
+
     public static boolean bindAccount(String uuid, String name, String email, String password) {
-        AccessToken accessToken = checkSastLinkAccount(email,password);
+        AccessToken accessToken = checkSastLinkAccount(email, password);
         sast.sastlink.sdk.model.response.data.User linkUser;
         try {
             linkUser = sastLinkService.user(accessToken.getAccessToken());
-        }catch (SastLinkException sastLinkException){
+        } catch (SastLinkException sastLinkException) {
             return false;
         }
         User user = UserAdapter.getUser(linkUser.getUserId());
-        User.Player p = new User.Player(uuid,name,null,false);
-        if(user == null){
-            user = new User(Arrays.asList(p),linkUser.getUserId(),linkUser.getNickname(),email);
+        User.Player p = new User.Player(uuid, name, null, false);
+        if (user == null) {
+            user = new User(Arrays.asList(p), linkUser.getUserId(), linkUser.getNickname(), email);
             UserAdapter.addUser(user);
-        }else {
+        } else {
             List<User.Player> players = user.getPlayers();
-            if(players.stream().noneMatch(player -> player.getUuid().equals(uuid))) players.add(p);
+            if (players.stream().noneMatch(player -> player.getUuid().equals(uuid))) players.add(p);
             UserAdapter.updateUser(user);
         }
         return true;
     }
 
-    public static boolean unBindAccount(String uuid, String linkId){
+    public static boolean unBindAccount(String uuid, String linkId) {
         UserAdapter.removePlayer(uuid, linkId);
         return true;
     }
 
-    public static boolean deleteAccount(String email, String password){
-        AccessToken accessToken = checkSastLinkAccount(email,password);
+    public static boolean deleteAccount(String email, String password) {
+        AccessToken accessToken = checkSastLinkAccount(email, password);
         sast.sastlink.sdk.model.response.data.User linkUser;
         try {
             linkUser = sastLinkService.user(accessToken.getAccessToken());
-        }catch (SastLinkException sastLinkException){
+        } catch (SastLinkException sastLinkException) {
             return false;
         }
         UserAdapter.removeUser(linkUser.getUserId());
