@@ -54,48 +54,58 @@ public class SastLinkServiceAdapter {
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     public static final ConcurrentHashMap<String, ServerPlayerEntity> linkIdPlayers = new ConcurrentHashMap<>();
 
-    public static void delayFailedLoginTask(String uuid){
+    public static void delayFailedLoginTask(String uuid) {
         scheduledExecutorService.schedule(() -> {
             ServerPlayerEntity player = uuidPlayers.get(uuid);
             if (player != null) {
-                player.sendMessage(Text.literal("§cLogin failed: expired please try again or bind first."),false);
+                player.sendMessage(Text.literal("§cLogin failed: expired please try again or bind first."), false);
                 uuidPlayers.remove(uuid);
             }
-        },60, TimeUnit.SECONDS);
+        }, 60, TimeUnit.SECONDS);
     }
 
-    public static void delayFailedBindTask(String linkId){
+    public static void delayFailedBindTask(String linkId) {
         scheduledExecutorService.schedule(() -> {
             ServerPlayerEntity player = linkIdPlayers.get(linkId);
-            if(player!=null){
-                player.sendMessage(Text.literal("§cBind failed: expired please try again."),false);
+            if (player != null) {
+                player.sendMessage(Text.literal("§cBind failed: expired please try again."), false);
                 linkIdPlayers.remove(linkId);
             }
-        },60, TimeUnit.SECONDS);
+        }, 60, TimeUnit.SECONDS);
     }
 
     public static void Auth(String code) {
-        sast.sastlink.sdk.model.response.data.User linkUser = null;
-        AccessToken accessToken = SastLinkServiceAdapter.sastLinkService.accessToken(code);
-        linkUser = SastLinkServiceAdapter.sastLinkService.user(accessToken.getAccessToken());
-        if (linkIdPlayers.get(linkUser.getUserId())!=null) {
+        System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: receive code:" + code);
+        sast.sastlink.sdk.model.response.data.User linkUser;
+        try {
+            AccessToken accessToken = SastLinkServiceAdapter.sastLinkService.accessToken(code);
+            System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: get access-token success.");
+            linkUser = SastLinkServiceAdapter.sastLinkService.user(accessToken.getAccessToken());
+            System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: get link-user-info success.");
+        } catch (SastLinkException sastLinkException) {
+            System.err.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: sast-link error Msg:" + sastLinkException.getMessage());
+            throw sastLinkException;
+        }
+        if (linkIdPlayers.get(linkUser.getUserId()) != null) {
+            System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: user try to bind: sast-link-id" + linkUser.getUserId());
             AuthBind(linkUser);
         } else {
+            System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: user try to login: sast-link-id" + linkUser.getUserId());
             User user = UserAdapter.getUser(linkUser.getUserId());
             AuthLogin(user);
         }
     }
 
-    public static void AuthLogin(User user){
-        if(user != null) {
+    public static void AuthLogin(User user) {
+        if (user != null) {
             List<User.Player> players = user.getPlayers();
-            for (User.Player player: players) {
+            for (User.Player player : players) {
                 ServerPlayerEntity serverPlayer = uuidPlayers.get(player.getUuid());
                 if (serverPlayer != null) {
                     serverPlayer.sendMessage(Text.literal("§bLogin..."), false);
-                    if(player.isLogin()){
-                        serverPlayer.sendMessage(Text.literal("§cUser:"+ user.getName() + "&" + player.getName()+" already login."), false);
-                    }else {
+                    if (player.isLogin()) {
+                        serverPlayer.sendMessage(Text.literal("§cUser:" + user.getName() + "&" + player.getName() + " already login."), false);
+                    } else {
                         player.setLogin(true);
                         if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
                         serverPlayer.sendMessage(Text.literal("§aLogin success."), false);
@@ -108,24 +118,24 @@ public class SastLinkServiceAdapter {
         }
     }
 
-    public static void AuthBind(sast.sastlink.sdk.model.response.data.User linkUser){
+    public static void AuthBind(sast.sastlink.sdk.model.response.data.User linkUser) {
         ServerPlayerEntity serverPlayer = linkIdPlayers.get(linkUser.getUserId());
-        if(serverPlayer != null){
+        if (serverPlayer != null) {
             serverPlayer.sendMessage(Text.literal("§bBinding..."), false);
             User user = UserAdapter.getUser(linkUser.getUserId());
-            if(user == null){
+            if (user == null) {
                 User.Player p = new User.Player(serverPlayer.getUuidAsString(), serverPlayer.getName().getString(), null, true);
                 user = new User(Arrays.asList(p), linkUser.getUserId(), linkUser.getNickname(), linkUser.getEmail());
                 UserAdapter.addUser(user);
                 if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
-                serverPlayer.sendMessage(Text.literal("§aBind success, account "+ user.getName() +" create."), false);
-            }else if(!user.getUuids().contains(serverPlayer.getUuidAsString())){
+                serverPlayer.sendMessage(Text.literal("§aBind success, account " + user.getName() + " create."), false);
+            } else if (!user.getUuids().contains(serverPlayer.getUuidAsString())) {
                 User.Player p = new User.Player(serverPlayer.getUuidAsString(), serverPlayer.getName().getString(), null, true);
                 user.getPlayers().add(p);
                 UserAdapter.updateUser(user);
                 if (!serverPlayer.isCreative()) serverPlayer.setInvulnerable(false);
                 serverPlayer.sendMessage(Text.literal("§aBind success."), false);
-            }else {
+            } else {
                 serverPlayer.sendMessage(Text.literal("§cBind account already exist, please login."), false);
             }
             linkIdPlayers.remove(linkUser.getUserId());

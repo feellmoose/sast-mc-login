@@ -6,6 +6,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.function.BiConsumer;
 
+import static fun.sast.sastlogin.config.SastLinkConfig.sastLinkConfig;
+
 public class ListenServer {
 
     private final BiConsumer<BufferedReader, BufferedWriter> callback;
@@ -19,11 +21,11 @@ public class ListenServer {
         return new ListenServer(callback);
     }
 
-    public ListenServer openServer(int port){
+    public ListenServer openServer(int port) {
         this.open = true;
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("sast-link server start listening port: " + port);
+                System.out.println("[sast-link client-server:" + sastLinkConfig.getPort() + "]: sast-link server start listening port: " + port);
                 while (this.open) {
                     try (Socket clientSocket = serverSocket.accept();
                          BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
